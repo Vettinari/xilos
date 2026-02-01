@@ -1,5 +1,17 @@
+[project]
+name = "HelloXilos"
+
 [cloud]
-provider = "aws" # options: aws, azure, gcp
+provider = "gcp"
+source = "gcs"
+metrics = "bigquery"
+
+[repository]
+type = "github"
 
 [monitor]
 numeric_threshold = 0.05
+numerical = "wasserstein"
+categorical = "pci"
+source = "gcs"
+metrics = "bigquery"
