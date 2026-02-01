@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^notebooks/
+      - id: end-of-file-fixer
+        exclude: ^notebooks/
+      - id: check-yaml
+      - id: check-added-large-files
+        exclude: ^notebooks/
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: ^notebooks/
+      - id: ruff-format
+        exclude: ^notebooks/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: ^notebooks/
+        
+  - repo: https://github.com/tamasfe/taplo-pre-commit
+    rev: v0.8.1
+    hooks:
+      - id: taplo-format
+        args: ["--option", "indent_string=    "]
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
