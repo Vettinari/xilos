@@ -1,0 +1,13 @@
+image: python:3.11
+
+pipelines:
+  default:
+    - step:
+        name: Build and Test
+        caches:
+          - pip
+        script:
+          - pip install poetry
+          - poetry install --with train,serve
+          - poetry run ruff check .
+          - poetry run pytest tests/ -v
