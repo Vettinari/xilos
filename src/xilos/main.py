@@ -1,21 +1,21 @@
-import sys
-
-from loguru import logger
-
 from ._build.generator import ProjectGenerator
 from .xilos_settings import xsettings
 
+try:
+    import loguru
+
+    plot = loguru.logger.info
+except ImportError:
+    plot = print
+
 
 def main():
-    logger.info("Starting Xilos ML Project Generator...")
+    plot("Starting Xilos ML Project Generator...")
 
-    if not xsettings.settings:
-        logger.error("Configuration could not be loaded. Exiting.")
-        sys.exit(1)
-
-    logger.info(f"Loaded project: {xsettings.settings.project.name}")
-    logger.info(f"Cloud Provider: {xsettings.cloud_provider}")
-    logger.info(f"Cloud Storage: {xsettings.cloud_storage}")
+    plot(f"Loaded project: {xsettings.project.name}")
+    plot(f"Cloud Provider: {xsettings.cloud.provider}")
+    plot(f"Cloud Storage: {xsettings.cloud.source}")
+    plot(f"Cloud Metrics: {xsettings.cloud.metrics}")
 
     generator = ProjectGenerator()
     generator.run()

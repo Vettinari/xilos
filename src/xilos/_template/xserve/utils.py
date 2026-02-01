@@ -1,42 +1,10 @@
-import json
-from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
-import pandas as pd
-from fastapi import HTTPException, Depends, Request
-from pydantic import BaseModel
+from fastapi import Request
+from loguru import logger
 
-from xilos.settings import settings, logger
-from xilos.xstore import get_saver
-from xilos.xtrain.model import MLModel
-from xilos.xtrain.processor.example import ExampleProcessor
-
-
-def save_log(log_payload: Dict[str, Any]):
-    """Background task to save logs to cloud storage."""
-    try:
-        saver = get_saver()
-        destination = settings.log_destination
-
-        if settings.cloud_storage in ["bigquery"]:
-            df = pd.DataFrame([log_payload])
-            if "timestamp" in df.columns:
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
-            saver.save(df, destination)
-
-        elif settings.cloud_storage in ["dynamodb", "cosmos"]:
-            payload = log_payload.copy()
-            if settings.cloud_storage == "cosmos":
-                payload["id"] = payload["request_id"]
-            saver.save(payload, destination)
-
-        else:
-            ts = datetime.fromisoformat(log_payload["timestamp"])
-            path = f"{destination}/{ts.year}/{ts.month:02d}/{ts.day:02d}/{log_payload['request_id']}.json"
-            saver.save(json.dumps(log_payload), path)
-
-    except Exception as e:
-        logger.error(f"Failed to save log: {e}")
+from ..xtrain.model import MLModel
+from ..xtrain.processor.example import ExampleProcessor
 
 
 # Dependencies

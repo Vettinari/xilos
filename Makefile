@@ -1,11 +1,18 @@
 # Configuration
 PYTHON_VERSION := 3.11.9
+POETRY_VERSION := 2.3.2
+
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 POETRY := $(VENV)/bin/poetry
 
+
+compile:
+	@echo "Compiling pyproject.toml..."
+	PYTHONPATH=src python3 -m xilos.compile_project
+
 # Install Python and Setup Venv with Poetry
-install-python:
+install-python: compile
 	@echo "Ensuring Python $(PYTHON_VERSION) is available..."
 	@set -e; \
 	PYBIN=python$(PYTHON_VERSION); \
@@ -37,5 +44,16 @@ install: install-python
 
 install-all: install-python
 	@echo "Installing all dependencies..."
-	$(POETRY) install --with train,serve,aws,azure,gcp
+	$(POETRY) install --with serve,aws,azure,gcp,dev
 	$(POETRY) run pre-commit install
+
+build:
+	@echo "Running project generator..."
+	PYTHONPATH=src $(POETRY) run python -m xilos.main
+
+clean:
+	@echo "Cleaning build artifacts..."
+	@rm -rf .venv  || true
+	@rm -rf pyproject.toml || true
+	@rm -rf poetry.lock || true
+	@echo "Cleaned."

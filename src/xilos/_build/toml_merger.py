@@ -29,9 +29,13 @@ def to_toml_string(data: Dict[str, Any]) -> str:
         if isinstance(v, bool):
             return str(v).lower()
         elif isinstance(v, list):
-            # rudimentary list formatting
-            items = ", ".join([f'"{x}"' if isinstance(x, str) else str(x) for x in v])
-            return f"[{items}]"
+            # Format list elements
+            items = [_format_value(x) for x in v]
+            return f"[{', '.join(items)}]"
+        elif isinstance(v, dict):
+            # Format inline table
+            items = [f"{k} = {_format_value(val)}" for k, val in v.items()]
+            return f"{{ {', '.join(items)} }}"
         elif isinstance(v, str):
             # basic escaping
             return f'"{v}"'

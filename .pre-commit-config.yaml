@@ -26,8 +26,8 @@ repos:
         types: [yaml]
         exclude: ^notebooks/
         
-  - repo: https://github.com/tamasfe/taplo-pre-commit
-    rev: v0.8.1
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
     hooks:
       - id: taplo-format
         args: ["--option", "indent_string=    "]

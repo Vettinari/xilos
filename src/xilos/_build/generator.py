@@ -16,7 +16,7 @@ class ProjectGenerator:
         self.xrepos_dir = self.template_dir / "xrepos"
 
         # Define target
-        self.target_dir = self.xilos_root / self.settings.project.name
+        self.target_dir = self.xilos_root / 'composed' /self.settings.project.name
 
     def run(self):
         self.init_structure()
@@ -41,9 +41,9 @@ class ProjectGenerator:
     def deploy_code(self):
         """Copies code modules from _template to src/xilos."""
         logger.info("Deploying code modules...")
-        
+
         target_pkg_dir = self.target_dir / "src" / "xilos"
-        
+
         # 1. Copy top-level files (__init__.py, settings.py)
         for filename in ["__init__.py", "settings.py"]:
             src = self.template_dir / filename
@@ -53,14 +53,14 @@ class ProjectGenerator:
 
         # 2. Copy Standard Modules
         modules = ["xcore", "xtrain", "xserve", "xmonitor"]
-        
+
         for mod in modules:
             src = self.template_dir / mod
             dest = target_pkg_dir / mod
             if src.exists():
                 if dest.exists():
                     shutil.rmtree(dest)
-                
+
                 # Copy tree but ignore pyproject.toml and __pycache__
                 shutil.copytree(src, dest, ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__"))
                 logger.info(f"Deployed module: {mod}")
@@ -71,7 +71,7 @@ class ProjectGenerator:
         provider_module = f"x{self.settings.cloud.provider}"
         src = self.template_dir / provider_module
         dest = target_pkg_dir / provider_module
-        
+
         if src.exists():
             if dest.exists():
                 shutil.rmtree(dest)
@@ -113,26 +113,14 @@ class ProjectGenerator:
             logger.warning(f"Repository source not found for type {repo_type} at {source_repo_dir}")
             return
 
-        if repo_type == "github":
-            target_workflow_dir = self.target_dir / ".github" / "workflows"
-            target_workflow_dir.mkdir(parents=True, exist_ok=True)
-
-            for item in source_repo_dir.iterdir():
-                if item.is_file() and (item.suffix == ".yaml" or item.suffix == ".yml"):
-                    shutil.copy2(item, target_workflow_dir / item.name)
-                    logger.debug(f"Copied workflow {item.name} -> {target_workflow_dir}")
-        else:
-            for item in source_repo_dir.iterdir():
-                if item.name == "__init__.py" or item.name == "__pycache__":
-                    continue
-                dest = self.target_dir / item.name
-                if item.is_file():
-                    shutil.copy2(item, dest)
-                elif item.is_dir():
-                    if dest.exists():
-                        shutil.rmtree(dest)
-                    shutil.copytree(item, dest)
-                logger.debug(f"Copied {item.name} -> {dest}")
+        # Simple recursive copy of everything in the repo dir to target dir
+        shutil.copytree(
+            source_repo_dir,
+            self.target_dir,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("__init__.py", "__pycache__"),
+        )
+        logger.info(f"Copied pipeline files from {source_repo_dir}")
 
     def generate_pyproject(self):
         """Merges pyproject.toml files from base, provider, and modules."""
@@ -141,7 +129,7 @@ class ProjectGenerator:
         from .._build.toml_merger import deep_merge, to_toml_string
 
         # 1. Base pyproject (src/xilos/pyproject.toml)
-        base_pyproject_path = self.xilos_root / "src" / "xilos" / "pyproject.toml"
+        base_pyproject_path = self.xilos_root / "src" / "xilos" / "_template" / "pyproject.toml"
         if not base_pyproject_path.exists():
             logger.error(f"Base pyproject.toml not found at {base_pyproject_path}")
             return

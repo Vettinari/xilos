@@ -3,6 +3,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+composed
+poetry.lock
+pyproject.toml
 
 # Environments
 .env

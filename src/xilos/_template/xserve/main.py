@@ -2,17 +2,17 @@ import gc
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request
+from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from loguru import logger
 
-from xilos.settings import logger
-from xilos.xserve.utils import get_model, get_processor, save_log
-from xilos.xtrain.model import MLModel
+from xilos._template.registry import registry
+from .schemas.predict import PredictRequest
+from ..xtrain.model import MLModel
 
 
 # Define a concrete class for loading models (since MLModel is abstract)
@@ -28,33 +28,31 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # --- Shutdown ---
     logger.info("Lifespan: Cleaning up resources...")
-
     gc.collect()
-
     logger.info("Resources cleared.")
 
 
 app = FastAPI(title="xServe API", lifespan=lifespan)
 
 
-class PredictRequest(BaseModel):
-    data: List[Dict[str, Any]]
-
-
 @app.get("/health")
-def health_check(request: Request):
-    model = getattr(request.app.state, "model", None)
-    return {"status": "ok", "model_loaded": model is not None}
+def health_check(
+        request: Request,
+        model: MLModel = Depends(registry.get_model),
+        processor: Any = Depends(registry.get_processor),
+):
+    is_model = model is not None
+    is_processor = processor is not None
+    status = "ok" if all([is_model, is_processor]) else "error"
+    return {"status": status, "model_loaded": is_model, "processor_loaded": is_processor}
 
 
 @app.post("/predict")
 def predict(
         request: PredictRequest,
-        background_tasks: BackgroundTasks,
-        model: MLModel = Depends(get_model),
-        processor: Any = Depends(get_processor)
+        model: MLModel = Depends(registry.get_model),
+        processor: Any = Depends(registry.get_processor)
 ):
     request_id = str(uuid.uuid4())
     start_time = datetime.now(timezone.utc)
@@ -78,7 +76,6 @@ def predict(
         # Update log
         log_payload["status"] = "success"
         log_payload["output"] = result_list
-        background_tasks.add_task(save_log, log_payload)
 
         return {"request_id": request_id, "predictions": result_list}
 
@@ -86,7 +83,6 @@ def predict(
         logger.error(f"Prediction failed: {e}")
         log_payload["status"] = "failed"
         log_payload["error"] = str(e)
-        background_tasks.add_task(save_log, log_payload)
 
         return JSONResponse(
             status_code=500,
@@ -95,7 +91,13 @@ def predict(
 
 
 def main():
-    uvicorn.run("xilos.xserve.main:app", host="0.0.0.0", port=8000, reload=True)
+    from ..settings import project_config
+    uvicorn.run(
+        "xilos.xserve.main:app",
+        host=project_config.SERVE_HOST,
+        port=project_config.SERVE_PORT,
+        reload=True,
+    )
 
 
 if __name__ == "__main__":

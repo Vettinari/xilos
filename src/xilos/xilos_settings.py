@@ -1,24 +1,23 @@
-import tomllib  # type: ignore
+import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import BaseModel
 
-
-# Define the path to xilos.toml.
-# Assuming it's in the project root, 3 levels up from this file (src/xilos/core/settings.py -> src/xilos -> src -> root)
-# Adjust if necessary based on where the valid toml is located relative to the package.
-
-class CloudSettings(BaseModel):
+@dataclass
+class CloudSettings:
     provider: str
     source: str
     metrics: str
 
 
-class RepositorySettings(BaseModel):
+@dataclass
+class RepositorySettings:
     type: str
 
 
-class MonitorSettings(BaseModel):
+@dataclass
+class MonitorSettings:
+    # Optional fields or with defaults if TOML might miss them
     numeric_threshold: float
     numerical: str
     categorical: str
@@ -26,30 +25,45 @@ class MonitorSettings(BaseModel):
     metrics: str
 
 
-class DescriptiveSettings(BaseModel):
+@dataclass
+class DescriptiveSettings:
     name: str
 
 
-class XilosSettings(BaseModel):
-    XILOS_ROOT: Path = Path(__file__).resolve().parent.parent.parent
-    CONFIG_PATH: Path = XILOS_ROOT / "xilos.toml"
+@dataclass
+class XilosSettings:
     project: DescriptiveSettings
     cloud: CloudSettings
     repository: RepositorySettings
     monitor: MonitorSettings
 
-    @classmethod
-    def load(cls, path: Path = CONFIG_PATH) -> "Settings":
-        if not path.exists():
-            raise FileNotFoundError(f"Configuration file not found at {path}")
+    # Class-level constants
+    XILOS_ROOT: Path = Path(__file__).resolve().parent.parent.parent
+    CONFIG_PATH: Path = XILOS_ROOT / "xilos.toml"
 
-        with open(path, "rb") as f:
+    @classmethod
+    def load(cls) -> "XilosSettings":
+        if not cls.CONFIG_PATH.exists():
+            raise FileNotFoundError(f"Configuration file not found at {cls.CONFIG_PATH}")
+
+        with open(cls.CONFIG_PATH, "rb") as f:
             data = tomllib.load(f)
 
-        return cls(**data)
+        # Manually parse nested dicts into dataclasses
+        try:
+            return cls(
+                project=DescriptiveSettings(**data.get("project", {})),
+                cloud=CloudSettings(**data.get("cloud", {})),
+                repository=RepositorySettings(**data.get("repository", {})),
+                monitor=MonitorSettings(**data.get("monitor", {}))
+            )
+        except TypeError as e:
+            # Handle missing keys or type mismatch gracefully-ish
+            raise ValueError(f"Error loading configuration: {e}")
 
 
 try:
     xsettings = XilosSettings.load()
 except FileNotFoundError:
-    raise FileNotFoundError(f"xilos.toml not found. Please ensure it exists in project root.")
+    raise FileNotFoundError(
+        f"xilos.toml not found at {XilosSettings.CONFIG_PATH}. Please ensure it exists in project root.")

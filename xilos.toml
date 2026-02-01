@@ -2,16 +2,29 @@
 name = "HelloXilos"
 
 [cloud]
+# Provider options: "gcp", "aws", "azure"
 provider = "gcp"
+# Source options:
+# - gcp: "gcs"
+# - aws: "s3", "dynamodb"
+# - azure: "blob", "cosmos"
 source = "gcs"
+# Metrics options:
+# - gcp: "bigquery"
+# - aws: "cloudwatch"
+# - azure: "none" (placeholder)
 metrics = "bigquery"
 
 [repository]
+# Type options: "github", "gitlab", "bitbucket"
 type = "github"
 
 [monitor]
 numeric_threshold = 0.05
+# Numerical drift metrics: "wasserstein"
 numerical = "wasserstein"
-categorical = "pci"
+# Categorical drift metrics: "psi" (Population Stability Index)
+# Note: Template implementation currently defaults to PSI.
+categorical = "psi"
 source = "gcs"
 metrics = "bigquery"
