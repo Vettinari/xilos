@@ -56,6 +56,7 @@ clean:
 	@rm -rf .venv  || true
 	@rm -rf pyproject.toml || true
 	@rm -rf poetry.lock || true
+	@rm -rf composed || true
 	@echo "Cleaned."
 
 inspect:

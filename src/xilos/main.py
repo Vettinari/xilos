@@ -1,4 +1,3 @@
-from . import xsettings
 from ._build.builder import ProjectBuilder
 from ._build.steps import (
     BaseAssetsStep,
@@ -24,11 +23,6 @@ def main():
         │    Xomnia Integrated Launcher for Operational Stacks     │
         └──────────────────────────────────────────────────────────┘
             """)
-
-    print("Starting Xilos ML Project Generator...")
-
-    print(f"\t- Loaded project: {xsettings.project.name}")
-    print(f"\t- Cloud Provider: {xsettings.cloud.provider}")
 
     builder = ProjectBuilder()
     builder.register(StructureStep())
