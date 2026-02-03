@@ -1,21 +1,21 @@
-    # Authenticate to Azure
-    # TODO: [ML Engineer] Add AZURE_CREDENTIALS to your GitHub Secrets
-    - name: 'Azure Login'
-      if: steps.check_changes.outputs.src_changed == 'true'
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+# Authenticate to Azure
+# TODO: [ML Engineer] Add AZURE_CREDENTIALS to your GitHub Secrets
+- name: "Azure Login"
+  if: steps.check_changes.outputs.src_changed == 'true'
+  uses: azure/login@v1
+  with:
+    creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: 'Build and push image'
-      if: steps.check_changes.outputs.src_changed == 'true'
-      uses: azure/docker-login@v1
-      with:
-        login-server: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-        username: ${{ secrets.REGISTRY_USERNAME }}
-        password: ${{ secrets.REGISTRY_PASSWORD }}
-    
-    - name: Build and push
-      if: steps.check_changes.outputs.src_changed == 'true'
-      run: |
-        docker build -f bookworm.Dockerfile -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+- name: "Build and push image"
+  if: steps.check_changes.outputs.src_changed == 'true'
+  uses: azure/docker-login@v1
+  with:
+    login-server: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+    username: ${{ secrets.REGISTRY_USERNAME }}
+    password: ${{ secrets.REGISTRY_PASSWORD }}
+
+- name: Build and push
+  if: steps.check_changes.outputs.src_changed == 'true'
+  run: |
+    docker build -f bookworm.Dockerfile -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+    docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}

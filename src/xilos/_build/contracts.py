@@ -2,9 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from loguru import logger
-
-from ..xilos_settings import XilosSettings
+from .. import XilosSettings
 
 
 @dataclass
@@ -36,8 +34,6 @@ class BuildStep(Protocol):
 
     def name(self) -> str:
         """Name of the step for logging."""
-        ...
 
     def execute(self, context: BuildContext) -> None:
         """Execute the step logic."""
-        ...

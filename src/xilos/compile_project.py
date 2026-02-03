@@ -1,7 +1,7 @@
 import tomllib
 
+from . import xsettings
 from ._build.toml_merger import deep_merge, to_toml_string
-from .xilos_settings import xsettings
 
 
 def compile_project():
@@ -21,6 +21,20 @@ def compile_project():
     print(f"Loading base config from {base_toml}")
     with open(base_toml, "rb") as f:
         config = tomllib.load(f)
+
+    # 1.5 Inject Metadata from Settings (since removed from template)
+    if "tool" not in config:
+        config["tool"] = {}
+    if "poetry" not in config["tool"]:
+        config["tool"]["poetry"] = {}
+
+    poetry_conf = config["tool"]["poetry"]
+    poetry_conf["name"] = "xilos"
+    poetry_conf["version"] = "0.0.1"
+    poetry_conf["description"] = "This is the XILOS project."
+    poetry_conf["authors"] = ["milosz.bertman@gmail.com"]
+    poetry_conf["readme"] = "README.md"
+    poetry_conf["packages"] = [{"include": "xilos", "from": "src"}]
 
     # 2. Find and Merge Templates
     # We look for all pyproject.toml files in _template

@@ -3,9 +3,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
-composed
+/composed
 poetry.lock
-node_modules
+/node_modules
 pyproject.toml
 
 # Environments

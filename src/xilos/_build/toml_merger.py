@@ -22,11 +22,6 @@ def to_toml_string(data: dict[str, Any]) -> str:
     """
     lines = []
 
-    # Process [tool.poetry] first if exists, to keep it at top
-    if "tool" in data and "poetry" in data["tool"]:
-        # We'll flatten this later or just handle sections recursively
-        pass
-
     def _format_value(v):
         if isinstance(v, bool):
             return str(v).lower()
@@ -47,40 +42,18 @@ def to_toml_string(data: dict[str, Any]) -> str:
         for key, value in section_data.items():
             if isinstance(value, dict):
                 new_prefix = f"{prefix}.{key}" if prefix else key
-                # Check if it's a section (dict of dicts or values)
-                # In TOML, [a.b]
-                # We defer writing the header until we know it has primitive children or we recurse
-                # Actually, standard TOML usually groups primitives then subsections.
-
-                # Check if this dict has sub-dicts (sections) or just values
                 has_subsections = any(isinstance(v, dict) for v in value.values())
 
                 if not has_subsections:
-                    # It's a leaf section like [tool.poetry.dependencies]
                     lines.append(f"\n[{new_prefix}]")
                     for k, v in value.items():
                         lines.append(f"{k} = {_format_value(v)}")
                 else:
-                    # It has mixed or just subsections.
-                    # Write primitives first?
-                    # For pyproject.toml, usually it's deep nesting.
-                    # simpler approach: Flatten keys?
                     _write_section(new_prefix, value)
             else:
-                # Top level key-value? (Only valid if prefix is empty or we are inside a section)
-                # If prefix is empty, it's global.
                 if not prefix:
                     lines.append(f"{key} = {_format_value(value)}")
-                # If prefix exists, we should have written the header already?
-                # Our recursive logic above prints headers only for leaf dicts.
-                # This is tricky for [tool.poetry] which has mixed content.
                 pass
-
-    # Better approach for TOML serialization of specific pyproject structure:
-    # 1. Flatten into (Section, Key, Value) tuples?
-    # 2. Or recursive walk that prints [Section] when it enters a dict that contains primitives.
-
-
 
     def _walk(path, node):
         # Separate children into primitives and dicts
@@ -103,6 +76,12 @@ def to_toml_string(data: dict[str, Any]) -> str:
 
     # Then sections
     top_dicts = {k: v for k, v in data.items() if isinstance(v, dict)}
+
+    # Force [tool] to be first if present
+    if "tool" in top_dicts:
+        _walk("tool", top_dicts["tool"])
+        del top_dicts["tool"]
+
     for k, v in top_dicts.items():
         _walk(k, v)
 

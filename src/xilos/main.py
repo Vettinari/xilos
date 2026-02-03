@@ -1,4 +1,4 @@
-from .xilos_settings import xsettings
+from . import xsettings
 from ._build.builder import ProjectBuilder
 from ._build.steps import (
     BaseAssetsStep,
@@ -36,7 +36,7 @@ def main():
     builder.register(PipelineStep())
     builder.register(CodeDeployStep())
     builder.register(ConfigStep())
-    
+
     builder.build()
 
 

@@ -10,9 +10,11 @@ class CodeDeployStep(BuildStep):
         return "Code Deployment"
 
     def execute(self, context: BuildContext) -> None:
-        logger.info("Deploying code modules...")
-        
+        logger.debug("Deploying code modules...")
+
         target_pkg_dir = context.target_dir / "src" / context.package_name
+
+        shutil_ignore_patterns = shutil.ignore_patterns("pyproject.toml", "__pycache__", ".ruff_cache")
 
         # 1. Copy top-level files (__init__.py, settings.py)
         for filename in ["__init__.py", "settings.py"]:
@@ -33,11 +35,11 @@ class CodeDeployStep(BuildStep):
 
                 # Copy tree but ignore pyproject.toml and caches
                 shutil.copytree(
-                    src, 
-                    dest, 
-                    ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__", ".ruff_cache")
+                    src,
+                    dest,
+                    ignore=shutil_ignore_patterns,
                 )
-                logger.info(f"Deployed module: {mod}")
+                logger.debug(f"Deployed module: {mod}")
             else:
                 logger.warning(f"Module {mod} not found in template")
 
@@ -49,11 +51,9 @@ class CodeDeployStep(BuildStep):
         if src.exists():
             if dest.exists():
                 shutil.rmtree(dest)
-            shutil.copytree(
-                src, 
-                dest, 
-                ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__", ".ruff_cache")
-            )
-            logger.info(f"Deployed provider module: {provider_module}")
+            shutil.copytree(src, dest, ignore=shutil_ignore_patterns)
+            logger.debug(f"Deployed provider module: {provider_module}")
         else:
             logger.warning(f"Provider module {provider_module} not found in template")
+
+        logger.info("Deployed code modules.")

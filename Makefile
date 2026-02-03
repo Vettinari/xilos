@@ -57,3 +57,7 @@ clean:
 	@rm -rf pyproject.toml || true
 	@rm -rf poetry.lock || true
 	@echo "Cleaned."
+
+inspect:
+	@echo "Running pre-commit checks..."
+	$(POETRY) run pre-commit run --all-files

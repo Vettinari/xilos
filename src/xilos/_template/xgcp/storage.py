@@ -65,7 +65,8 @@ class BigQueryFetcher(DataTable):
         """
         Fetch from BigQuery table.
         Args:
-            source: Table ID (project.dataset.table) or if query is provided, this might be ignored or part of query context.
+            source: Table ID (project.dataset.table) or if query is provided,
+                this might be ignored or part of query context.
             query: SQL query string. If None, selects * from source.
         """
         sql = query

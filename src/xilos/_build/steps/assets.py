@@ -10,7 +10,7 @@ class BaseAssetsStep(BuildStep):
         return "Asset Deployment (xroot)"
 
     def execute(self, context: BuildContext) -> None:
-        logger.info("Deploying xroot files...")
+        logger.debug("Deploying xroot files...")
         if not context.xroot_dir.exists():
             logger.warning(f"xroot directory not found at {context.xroot_dir}")
             return
@@ -28,9 +28,7 @@ class BaseAssetsStep(BuildStep):
             elif item.is_dir():
                 if destination.exists():
                     shutil.rmtree(destination)
-                shutil.copytree(
-                    item, 
-                    destination, 
-                    ignore=shutil.ignore_patterns(".ruff_cache", "__pycache__")
-                )
+                shutil.copytree(item, destination, ignore=shutil.ignore_patterns(".ruff_cache", "__pycache__"))
                 logger.debug(f"Copied dir {item.name} -> {destination}")
+
+        logger.info("Deployed xroot files.")

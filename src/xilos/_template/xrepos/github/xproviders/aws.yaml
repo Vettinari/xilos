@@ -1,26 +1,26 @@
-    # Authenticate to AWS
-    # TODO: [ML Engineer] Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to your GitHub Secrets
-    - name: Configure AWS credentials
-      if: steps.check_changes.outputs.src_changed == 'true'
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+# Authenticate to AWS
+# TODO: [ML Engineer] Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to your GitHub Secrets
+- name: Configure AWS credentials
+  if: steps.check_changes.outputs.src_changed == 'true'
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    aws-region: ${{ env.AWS_REGION }}
 
-    # Login to ECR
-    - name: Login to Amazon ECR
-      if: steps.check_changes.outputs.src_changed == 'true'
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+# Login to ECR
+- name: Login to Amazon ECR
+  if: steps.check_changes.outputs.src_changed == 'true'
+  id: login-ecr
+  uses: aws-actions/amazon-ecr-login@v2
 
-    # Build and Push Container
-    - name: Build, tag, and push image to Amazon ECR
-      if: steps.check_changes.outputs.src_changed == 'true'
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -f bookworm.Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+# Build and Push Container
+- name: Build, tag, and push image to Amazon ECR
+  if: steps.check_changes.outputs.src_changed == 'true'
+  env:
+    ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+    IMAGE_TAG: ${{ github.sha }}
+  run: |
+    docker build -f bookworm.Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

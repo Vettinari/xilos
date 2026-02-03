@@ -53,7 +53,7 @@ class S3Storage(DataStorage):
         path = self._validate_s3_path(path=path)
         path = path.replace("s3://", "")
         parts = path.split("/", 1)
-        if len(parts) != 2:
+        if len(parts) != 2:  # ignore F821
             raise ValueError(f"Invalid S3 path format: {path}, must be s3://bucket/key")
 
         return parts[0], parts[1]
