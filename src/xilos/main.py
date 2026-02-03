@@ -1,5 +1,12 @@
-from ._build.generator import ProjectGenerator
 from .xilos_settings import xsettings
+from ._build.builder import ProjectBuilder
+from ._build.steps import (
+    BaseAssetsStep,
+    CodeDeployStep,
+    ConfigStep,
+    PipelineStep,
+    StructureStep,
+)
 
 
 def main():
@@ -23,8 +30,14 @@ def main():
     print(f"\t- Loaded project: {xsettings.project.name}")
     print(f"\t- Cloud Provider: {xsettings.cloud.provider}")
 
-    generator = ProjectGenerator()
-    generator.run()
+    builder = ProjectBuilder()
+    builder.register(StructureStep())
+    builder.register(BaseAssetsStep())
+    builder.register(PipelineStep())
+    builder.register(CodeDeployStep())
+    builder.register(ConfigStep())
+    
+    builder.build()
 
 
 if __name__ == "__main__":
