@@ -22,6 +22,7 @@ class DriftAnalyzer:
         # If pandas
         try:
             import pandas as pd
+
             if isinstance(data, pd.DataFrame):
                 return pl.from_pandas(data)
         except ImportError:
@@ -30,6 +31,7 @@ class DriftAnalyzer:
         # If bytes (assuming csv/parquet)
         if isinstance(data, bytes):
             import io
+
             try:
                 return pl.read_parquet(io.BytesIO(data))
             except Exception:
@@ -69,15 +71,16 @@ class DriftAnalyzer:
 
         # Add epsilon to avoid division by zero
         epsilon = 1e-6
-        joined = joined.with_columns([
-            ((pl.col("ref_count") / total_ref) + epsilon).alias("ref_pct"),
-            ((pl.col("curr_count") / total_curr) + epsilon).alias("curr_pct"),
-        ])
+        joined = joined.with_columns(
+            [
+                ((pl.col("ref_count") / total_ref) + epsilon).alias("ref_pct"),
+                ((pl.col("curr_count") / total_curr) + epsilon).alias("curr_pct"),
+            ]
+        )
 
         # 4. Calculate PSI components: (Actual% - Expected%) * ln(Actual% / Expected%)
         # Here Current=Actual, Reference=Expected
-        psi_series = (pl.col("curr_pct") - pl.col("ref_pct")) * \
-                     (pl.col("curr_pct") / pl.col("ref_pct")).log()
+        psi_series = (pl.col("curr_pct") - pl.col("ref_pct")) * (pl.col("curr_pct") / pl.col("ref_pct")).log()
 
         # 5. Sum
         psi = joined.select(psi_series.sum()).item()
@@ -88,7 +91,7 @@ class DriftAnalyzer:
         Perform drift analysis on variables.
         - Numerical: Wasserstein Distance
         - Categorical: Population Stability Index (PSI)
-        
+
         Returns:
             pl.DataFrame: Report with columns [column, type, metric, value]
         """
@@ -107,12 +110,7 @@ class DriftAnalyzer:
 
         for col in common_numerics:
             dist = self._compute_wasserstein(ref_df[col], curr_df[col])
-            results.append({
-                "column": col,
-                "type": "numerical",
-                "metric": "wasserstein",
-                "value": dist
-            })
+            results.append({"column": col, "type": "numerical", "metric": "wasserstein", "value": dist})
 
         # --- Categorical Analysis ---
         # Select strings and categoricals
@@ -122,12 +120,7 @@ class DriftAnalyzer:
 
         for col in common_cats:
             psi = self._compute_psi(ref_df[col], curr_df[col])
-            results.append({
-                "column": col,
-                "type": "categorical",
-                "metric": "psi",
-                "value": psi
-            })
+            results.append({"column": col, "type": "categorical", "metric": "psi", "value": psi})
 
         report_df = pl.DataFrame(results)
         logger.info(f"Drift analysis complete. Analyzed {len(results)} columns.")

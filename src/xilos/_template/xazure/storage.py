@@ -1,15 +1,16 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional, Union, Any, Generator
+from typing import Any
 
 import pandas as pd
 import polars as pl
 from azure.cosmos import CosmosClient
 from azure.cosmos.aio import ContainerProxy, DatabaseProxy
-from azure.storage.blob import BlobServiceClient, BlobClient
+from azure.storage.blob import BlobClient, BlobServiceClient
 from loguru import logger
 
-from .settings import AzureConfig
 from ..xcore.xstore import DataStorage, DataTable
+from .settings import AzureConfig
 
 
 class AzureStorage(DataStorage):
@@ -96,13 +97,10 @@ class CosmosStorage(DataTable):
             sql = query if query else "SELECT * FROM c"
 
             # Simple query for all items
-            items = list(cclient.query_items(
-                query=sql,
-                enable_cross_partition_query=True
-            ))
+            items = list(cclient.query_items(query=sql, enable_cross_partition_query=True))
             return pl.DataFrame(items)
 
-    def append(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def append(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """
         Save items to Cosmos DB container.
         Args:
@@ -122,16 +120,16 @@ class CosmosStorage(DataTable):
             for item in records:
                 container_client.create_item(body=item)
 
-    def create_table(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def create_table(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """
         Create a Cosmos container.
         For exact parity, this should check if container exists or create it.
         Requires database name and container name.
         """
         with self.db_client(self, source=destination) as db_client:
-
             try:
                 from azure.cosmos import PartitionKey
+
                 _, container_name = self._source_to_db_and_container(source=destination)
                 db_client.create_container(id=container_name, partition_key=PartitionKey(path="/id"))
                 logger.info(f"Created container {container_name}")

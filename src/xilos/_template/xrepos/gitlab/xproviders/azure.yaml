@@ -1,0 +1,23 @@
+build-push-image:
+  stage: build
+  image: mcr.microsoft.com/azure-cli
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs: ["test"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "development" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "production"
+      changes:
+        - src/**/*
+        - bookworm.Dockerfile
+        - pyproject.toml
+        - poetry.lock
+  script:
+    # TODO: Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, ACR_NAME in CI/CD Variables
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+    - az acr login --name $ACR_NAME
+    - export DOCKER_TAG="$ACR_NAME.azurecr.io/$IMAGE_NAME:$CI_COMMIT_SHA"
+    - docker build -f bookworm.Dockerfile -t $DOCKER_TAG .
+    - docker push $DOCKER_TAG

@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "xilos"                                       # to change from xilos.toml
-version = "0.1.0"
-description = "Production-grade ML project template" # to change from xilos.toml
-authors = ["Milosz Bertman <milosz@xomnia.com>"]     # to change from xilos.toml
+name = "xfill"
+version = "xfill"
+description = "xfill"
+authors = ["xfill"]
 readme = "README.md"
-packages = [{ include = "xilos", from = "src" }]
+packages = [{ include = "xfill", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11.9"

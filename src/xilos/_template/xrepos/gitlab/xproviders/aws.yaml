@@ -1,0 +1,22 @@
+build-push-image:
+  stage: build
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs: ["test"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "development" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "production"
+      changes:
+        - src/**/*
+        - bookworm.Dockerfile
+        - pyproject.toml
+        - poetry.lock
+  script:
+    # TODO: Ensure AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, ECR_REPO_URI are set in CI/CD Variables
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI
+    - export DOCKER_TAG="$ECR_REPO_URI:$CI_COMMIT_SHA"
+    - docker build -f bookworm.Dockerfile -t $DOCKER_TAG .
+    - docker push $DOCKER_TAG

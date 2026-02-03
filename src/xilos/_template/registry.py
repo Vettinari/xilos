@@ -1,5 +1,5 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from fastapi import Request
 from loguru import logger
@@ -16,7 +16,8 @@ from .xtrain.processor.example import ExampleProcessor
 def _parse_project_providers() -> tuple[DataStorage, DataTable]:
     try:
         from .xaws.settings import aws_config
-        from .xaws.storage import S3Storage, DynamoStorage
+        from .xaws.storage import DynamoStorage, S3Storage
+
         return S3Storage(aws_config), DynamoStorage(aws_config)
 
     except ImportError:
@@ -24,7 +25,8 @@ def _parse_project_providers() -> tuple[DataStorage, DataTable]:
 
     try:
         from .xgcp.settings import gcp_config
-        from .xgcp.storage import GCSStorage, BigQueryFetcher
+        from .xgcp.storage import BigQueryFetcher, GCSStorage
+
         return GCSStorage(gcp_config), BigQueryFetcher(gcp_config)
     except ImportError:
         pass
@@ -32,6 +34,7 @@ def _parse_project_providers() -> tuple[DataStorage, DataTable]:
     try:
         from .xazure.settings import azure_config
         from .xazure.storage import AzureStorage, CosmosStorage
+
         return AzureStorage(azure_config), CosmosStorage(azure_config)
     except ImportError:
         pass
@@ -48,6 +51,7 @@ class ProviderRegistry(BaseModel):
     @contextmanager
     def get_model(self, request: Request) -> Generator[MLModel, None, None]:
         import os
+
         mp = project_config.MODEL_PATH
         if os.path.exists(mp):
             model = self.model.load(mp)
@@ -64,6 +68,7 @@ class ProviderRegistry(BaseModel):
     def get_processor(self, request: Request) -> Generator[DataProcessor, None, None]:
         try:
             import os
+
             pp = project_config.PROCESSOR_PATH
             if os.path.exists(pp):
                 processor = self.processor.load(pp)

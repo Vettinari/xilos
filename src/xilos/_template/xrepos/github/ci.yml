@@ -7,7 +7,7 @@ on:
     branches: ["development", "staging", "production"]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed to check for changes
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -49,3 +51,19 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest tests/ -v --cov=src/xilos
+
+      # This step prevents light data leaks in notebooks where sensitive data is stored
+      # during experiments
+      - name: Strip notebook contents
+        run: poetry install nbstripout . && nbstripout */**/*.ipynb
+
+      # Check for changes in src/ or configuration files to decide whether to build docker image
+      # The actual build/push steps will be injected here during project init based on the chosen cloud vendor
+      - name: Check for changes
+        id: check_changes
+        run: |
+          changed=false
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^(src/|poetry\.lock|pyproject\.toml|bookworm\.Dockerfile)'; then
+            changed=true
+          fi
+          echo "src_changed=$changed" >> $GITHUB_OUTPUT

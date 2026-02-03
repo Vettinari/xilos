@@ -7,13 +7,15 @@ from ..config import project_config
 from ..xcore.xmodel import XModel
 from ..xcore.xprocessor import DataProcessor
 from ..xcore.xstore import DataStorage, DataTable
+from .model import MLModel
+from .processor.processor import ExampleProcessor
 
 
 def run_training_pipeline(
-        data_storage: DataStorage,
-        data_table: DataTable,
-        processor: DataProcessor,
-        model: XModel,
+    data_storage: DataStorage,
+    data_table: DataTable,
+    processor: DataProcessor,
+    model: XModel,
 ):
     """Main training pipeline execution."""
     logger.info(f"Starting training pipeline for {project_config}...")
@@ -33,7 +35,8 @@ def run_training_pipeline(
     X = df.drop(columns=["target"])
     y = df["target"]
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
+        X,
+        y,
         test_size=0.2,
         random_state=project_config.RANDOM_SEED,
     )
@@ -51,8 +54,11 @@ def main() -> None:
     """Entry point."""
     try:
         run_training_pipeline(
-            processor_class=ExampleProcessor(),
-            model_class=RandomForestModel(),
+            processor=ExampleProcessor(),
+            model=MLModel(),
+            # In a real scenario, storage/table should be passed here too or injected
+            data_storage=None,  # Placeholder or mock if not available in template main
+            data_table=None,
         )
     except Exception as e:
         logger.error(f"Training pipeline failed: {e}", exc_info=True)

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   xserve:
@@ -20,4 +20,4 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     command: python -m xilos.xtrain.main
-    profiles: [ "train" ] # Only run when explicitly requested or profile is active
+    profiles: ["train"] # Only run when explicitly requested or profile is active

@@ -1,0 +1,19 @@
+- step:
+    name: Build and Push Docker Image (Azure)
+    image: mcr.microsoft.com/azure-cli
+    services:
+      - docker
+    condition:
+      changesets:
+        includePaths:
+          - "src/**"
+          - "bookworm.Dockerfile"
+          - "pyproject.toml"
+          - "poetry.lock"
+    script:
+      # TODO: Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, ACR_NAME in Repository variables
+      - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+      - az acr login --name $ACR_NAME
+      - export DOCKER_TAG="$ACR_NAME.azurecr.io/$IMAGE_NAME:$BITBUCKET_COMMIT"
+      - docker build -f bookworm.Dockerfile -t $DOCKER_TAG .
+      - docker push $DOCKER_TAG

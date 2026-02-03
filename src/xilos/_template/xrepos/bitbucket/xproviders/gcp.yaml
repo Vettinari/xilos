@@ -1,0 +1,26 @@
+- step:
+    name: Build and Push Docker Image (GCP)
+    image: google/cloud-sdk:latest
+    services:
+      - docker
+    # Only run this step if there are changes in the source code or config
+    condition:
+      changesets:
+        includePaths:
+          - "src/**"
+          - "bookworm.Dockerfile"
+          - "pyproject.toml"
+          - "poetry.lock"
+    script:
+      # TODO: [ML Engineer] Set these variables in Repository Settings > Repository variables
+      # GCP_PROJECT_ID, GCP_REGION, IMAGE_NAME, GCP_SA_KEY (Secured)
+
+      # Authenticate to GCP
+      - echo $GCP_SA_KEY > /tmp/gcp-key.json
+      - gcloud auth activate-service-account --key-file /tmp/gcp-key.json
+      - gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+
+      # Build and Push
+      - export DOCKER_TAG="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/repo/$IMAGE_NAME:$BITBUCKET_COMMIT"
+      - docker build -f bookworm.Dockerfile -t $DOCKER_TAG .
+      - docker push $DOCKER_TAG

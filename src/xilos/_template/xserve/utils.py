@@ -3,13 +3,21 @@ from typing import Any
 from fastapi import Request
 from loguru import logger
 
+from ..settings import project_config as settings
 from ..xtrain.model import MLModel
 from ..xtrain.processor.example import ExampleProcessor
+
+
+# Define a concrete class or use MLModel directly if it supports loading
+class ServingModel(MLModel):
+    def _build_model(self, **kwargs):
+        raise NotImplementedError("ServingModel is for loading existing models only.")
 
 
 # Dependencies
 def get_model(request: Request) -> MLModel:
     import os
+
     if os.path.exists(settings.model_output_path):
         model = ServingModel.load(settings.model_output_path)
         logger.info(f"Model loaded from {settings.model_output_path}")

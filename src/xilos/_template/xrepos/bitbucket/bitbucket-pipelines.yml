@@ -1,13 +1,26 @@
 image: python:3.11
 
+definitions:
+  caches:
+    poetry: ~/.cache/pypoetry
+  services:
+    docker:
+      memory: 2048
+
 pipelines:
   default:
     - step:
-        name: Build and Test
+        name: Test and Lint
         caches:
           - pip
+          - poetry
         script:
           - pip install poetry
-          - poetry install --with train,serve
+          - poetry config virtualenvs.create false
+          - poetry install --with train,serve --no-interaction
           - poetry run ruff check .
-          - poetry run pytest tests/ -v
+          - poetry run ruff format --check .
+          - poetry run pytest tests/ -v --cov=src/xilos
+          - poetry install nbstripout . && nbstripout */**/*.ipynb
+
+    # The build and push step will be appended here based on the chosen cloud vendor

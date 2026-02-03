@@ -1,18 +1,19 @@
 import gc
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, Depends, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
 
 from xilos._template.registry import registry
-from .schemas.predict import PredictRequest
+
 from ..xtrain.model import MLModel
+from .schemas.predict import PredictRequest
 
 
 # Define a concrete class for loading models (since MLModel is abstract)
@@ -38,9 +39,9 @@ app = FastAPI(title="xServe API", lifespan=lifespan)
 
 @app.get("/health")
 def health_check(
-        request: Request,
-        model: MLModel = Depends(registry.get_model),
-        processor: Any = Depends(registry.get_processor),
+    request: Request,
+    model: MLModel = Depends(registry.get_model),  # noqa: B008
+    processor: Any = Depends(registry.get_processor),  # noqa: B008
 ):
     is_model = model is not None
     is_processor = processor is not None
@@ -50,12 +51,12 @@ def health_check(
 
 @app.post("/predict")
 def predict(
-        request: PredictRequest,
-        model: MLModel = Depends(registry.get_model),
-        processor: Any = Depends(registry.get_processor)
+    request: PredictRequest,
+    model: MLModel = Depends(registry.get_model),  # noqa: B008
+    processor: Any = Depends(registry.get_processor),  # noqa: B008
 ):
     request_id = str(uuid.uuid4())
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
 
     log_payload = {
         "request_id": request_id,
@@ -63,7 +64,7 @@ def predict(
         "input": request.dict(),
         "status": "pending",
         "output": None,
-        "error": None
+        "error": None,
     }
 
     try:
@@ -84,14 +85,12 @@ def predict(
         log_payload["status"] = "failed"
         log_payload["error"] = str(e)
 
-        return JSONResponse(
-            status_code=500,
-            content={"request_id": request_id, "error": str(e)}
-        )
+        return JSONResponse(status_code=500, content={"request_id": request_id, "error": str(e)})
 
 
 def main():
     from ..settings import project_config
+
     uvicorn.run(
         "xilos.xserve.main:app",
         host=project_config.SERVE_HOST,

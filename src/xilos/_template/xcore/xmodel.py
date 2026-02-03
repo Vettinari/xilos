@@ -29,5 +29,5 @@ class XModel(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def load(cls, path: str | Path) -> 'MLModel':
+    def load(cls, path: str | Path) -> "XModel":
         """Load model from disk."""

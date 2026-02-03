@@ -9,7 +9,7 @@ from loguru import logger
 from ..xcore.xmodel import XModel
 
 
-class ExampleLGBMModel(XModel):
+class MLModel(XModel):
     """Abstract base class for all ML models."""
 
     def __init__(self, **kwargs):
@@ -37,7 +37,7 @@ class ExampleLGBMModel(XModel):
         logger.info("Model saved.")
 
     @classmethod
-    def load(cls, path: str | Path) -> 'MLModel':
+    def load(cls, path: str | Path) -> "MLModel":
         """Load model from disk."""
         logger.info(f"Loading model from {path}...")
         instance = cls.__new__(cls)

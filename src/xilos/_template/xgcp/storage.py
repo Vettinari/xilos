@@ -1,10 +1,10 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional, Union, Any, Generator
+from typing import Any
 
 import pandas as pd
 import polars as pl
-from google.cloud import bigquery
-from google.cloud import storage
+from google.cloud import bigquery, storage
 from google.cloud.storage import Blob
 from loguru import logger
 
@@ -82,7 +82,7 @@ class BigQueryFetcher(DataTable):
             logger.error(f"BigQuery query failed: {e}")
             raise
 
-    def append(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def append(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """
         Store data to BigQuery table.
         Args:
@@ -105,7 +105,7 @@ class BigQueryFetcher(DataTable):
             logger.error(f"BigQuery store failed: {e}")
             raise
 
-    def create_table(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def create_table(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """Create BigQuery table from dataframe schema."""
         logger.info(f"Creating BigQuery table: {destination}")
         if data is None:

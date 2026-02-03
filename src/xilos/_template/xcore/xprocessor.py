@@ -5,7 +5,6 @@ from sklearn.base import TransformerMixin
 
 
 class DataProcessor(abc.ABC, TransformerMixin):
-
     @abc.abstractmethod
     def clean_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Clean data"""

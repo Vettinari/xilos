@@ -10,10 +10,7 @@ class ExampleProcessor(DataProcessor):
     """Example concrete implementation of DataProcessor."""
 
     def __init__(self):
-        self.pipeline = Pipeline([
-            ('imputer', SimpleImputer(strategy='mean')),
-            ('scaler', StandardScaler())
-        ])
+        self.pipeline = Pipeline([("imputer", SimpleImputer(strategy="mean")), ("scaler", StandardScaler())])
 
     def clean(self, data: pd.DataFrame) -> pd.DataFrame:
         """Basic cleaning: remove duplicates."""
@@ -23,16 +20,16 @@ class ExampleProcessor(DataProcessor):
         """Feature engineering: example numerical features."""
         # This is where custom logic goes.
         # For this example, we assume all numeric columns are features.
-        return data.select_dtypes(include=['number'])
+        return data.select_dtypes(include=["number"])
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         """Fit the internal pipeline."""
         X_clean = self.clean(X)
         X_feat = self.feature_engineer(X_clean)
         self.pipeline.fit(X_feat)
         return self
 
-    def transform(self, x):
+    def transform(self, X):
         """Transform data."""
         X_clean = self.clean(X)
         X_feat = self.feature_engineer(X_clean)

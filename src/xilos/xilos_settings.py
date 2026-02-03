@@ -6,8 +6,6 @@ from pathlib import Path
 @dataclass
 class CloudSettings:
     provider: str
-    source: str
-    metrics: str
 
 
 @dataclass
@@ -21,13 +19,16 @@ class MonitorSettings:
     numeric_threshold: float
     numerical: str
     categorical: str
-    source: str
-    metrics: str
 
 
 @dataclass
 class DescriptiveSettings:
     name: str
+    package_name: str
+    version: str
+    description: str
+    authors: list[str]
+    readme: str
 
 
 @dataclass
@@ -55,15 +56,16 @@ class XilosSettings:
                 project=DescriptiveSettings(**data.get("project", {})),
                 cloud=CloudSettings(**data.get("cloud", {})),
                 repository=RepositorySettings(**data.get("repository", {})),
-                monitor=MonitorSettings(**data.get("monitor", {}))
+                monitor=MonitorSettings(**data.get("monitor", {})),
             )
         except TypeError as e:
             # Handle missing keys or type mismatch gracefully-ish
-            raise ValueError(f"Error loading configuration: {e}")
+            raise ValueError(f"Error loading configuration: {e}") from e
 
 
 try:
     xsettings = XilosSettings.load()
-except FileNotFoundError:
+except FileNotFoundError as e:
     raise FileNotFoundError(
-        f"xilos.toml not found at {XilosSettings.CONFIG_PATH}. Please ensure it exists in project root.")
+        f"xilos.toml not found at {XilosSettings.CONFIG_PATH}. Please ensure it exists in project root."
+    ) from e

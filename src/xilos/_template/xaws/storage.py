@@ -1,13 +1,13 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional, Union, Generator
 
 import boto3
 import pandas as pd
 import polars as pl
 from loguru import logger
 
-from .settings import AWSConfig
 from ..xcore.xstore import DataStorage, DataTable
+from .settings import AWSConfig
 
 
 class S3Storage(DataStorage):
@@ -88,15 +88,15 @@ class DynamoStorage(DataTable):
 
         # robust implementation would handle query vs scan based on input
         response = table.scan()
-        data = response.get('Items', [])
+        data = response.get("Items", [])
 
-        while 'LastEvaluatedKey' in response:
-            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-            data.extend(response.get('Items', []))
+        while "LastEvaluatedKey" in response:
+            response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+            data.extend(response.get("Items", []))
 
         return pl.DataFrame(data)
 
-    def append(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def append(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """Store rows to DynamoDB table."""
         if data is None:
             return
@@ -112,10 +112,10 @@ class DynamoStorage(DataTable):
             for item in records:
                 batch.put_item(Item=item)
 
-    def create_table(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def create_table(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """
-        Create a DynamoDB table. 
-        Note: This is complex in DynamoDB (need schema definition). 
+        Create a DynamoDB table.
+        Note: This is complex in DynamoDB (need schema definition).
         For now, this is a placeholder or minimal implementation.
         """
         logger.warning("create_table not fully implemented for DynamoDB (requires schema inference).")

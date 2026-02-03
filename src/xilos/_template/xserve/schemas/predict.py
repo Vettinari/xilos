@@ -1,4 +1,7 @@
+from typing import Any
+
 from pydantic import BaseModel
 
+
 class PredictRequest(BaseModel):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]

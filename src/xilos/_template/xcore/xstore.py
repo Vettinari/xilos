@@ -1,11 +1,10 @@
 import abc
-from typing import Optional, Union
 
 import pandas as pd
 import polars as pl
 from loguru import logger
 
-from ..config import ProjectConfig, DATA_DIR, NOW
+from ..config import DATA_DIR, NOW, ProjectConfig
 
 
 class DataStorage(abc.ABC):
@@ -34,6 +33,7 @@ class DataStorage(abc.ABC):
 
             if save_path is None:
                 import os
+
                 os.remove(DATA_DIR / temp_name)
 
             return df
@@ -43,10 +43,10 @@ class DataStorage(abc.ABC):
             raise
 
     def store_dataframe(
-            self,
-            data: Optional[Union[pl.DataFrame, pd.DataFrame]],
-            destination: str,
-            cloud_path: str,
+        self,
+        data: pl.DataFrame | pd.DataFrame | None,
+        destination: str,
+        cloud_path: str,
     ) -> None:
         """Save data to the destination."""
         logger.info(f"Storing dataframe to {destination}...")
@@ -54,8 +54,9 @@ class DataStorage(abc.ABC):
         self.store_object(file_path=destination, cloud_path=cloud_path)
         logger.info("Store complete.")
 
-        if self.config.ENV != 'dev':
+        if self.config.ENV != "dev":
             import os
+
             os.remove(destination)
 
 
@@ -70,9 +71,9 @@ class DataTable(abc.ABC):
         """Fetch logged metrics from the specified source."""
 
     @abc.abstractmethod
-    def append(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def append(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """Save data to the destination."""
 
     @abc.abstractmethod
-    def create_table(self, data: Optional[Union[pl.DataFrame, pd.DataFrame]], destination: str) -> None:
+    def create_table(self, data: pl.DataFrame | pd.DataFrame | None, destination: str) -> None:
         """Create a metrics table in the underlying store."""

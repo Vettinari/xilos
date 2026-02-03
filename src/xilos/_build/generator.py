@@ -16,7 +16,7 @@ class ProjectGenerator:
         self.xrepos_dir = self.template_dir / "xrepos"
 
         # Define target
-        self.target_dir = self.xilos_root / 'composed' /self.settings.project.name
+        self.target_dir = self.xilos_root / "composed" / self.settings.project.name
 
     def run(self):
         self.init_structure()
@@ -35,14 +35,16 @@ class ProjectGenerator:
         else:
             logger.warning(f"Target directory {self.target_dir} already exists. Existing files may be overwritten.")
 
-        # Create src/xilos structure
-        (self.target_dir / "src" / "xilos").mkdir(parents=True, exist_ok=True)
+        # Create src/<package_name> structure
+        pkg_name = self.settings.project.package_name
+        (self.target_dir / "src" / pkg_name).mkdir(parents=True, exist_ok=True)
 
     def deploy_code(self):
-        """Copies code modules from _template to src/xilos."""
+        """Copies code modules from _template to src/<package_name>."""
         logger.info("Deploying code modules...")
 
-        target_pkg_dir = self.target_dir / "src" / "xilos"
+        pkg_name = self.settings.project.package_name
+        target_pkg_dir = self.target_dir / "src" / pkg_name
 
         # 1. Copy top-level files (__init__.py, settings.py)
         for filename in ["__init__.py", "settings.py"]:
@@ -61,8 +63,10 @@ class ProjectGenerator:
                 if dest.exists():
                     shutil.rmtree(dest)
 
-                # Copy tree but ignore pyproject.toml and __pycache__
-                shutil.copytree(src, dest, ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__"))
+                # Copy tree but ignore pyproject.toml and caches
+                shutil.copytree(
+                    src, dest, ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__", ".ruff_cache")
+                )
                 logger.info(f"Deployed module: {mod}")
             else:
                 logger.warning(f"Module {mod} not found in template")
@@ -75,7 +79,7 @@ class ProjectGenerator:
         if src.exists():
             if dest.exists():
                 shutil.rmtree(dest)
-            shutil.copytree(src, dest, ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__"))
+            shutil.copytree(src, dest, ignore=shutil.ignore_patterns("pyproject.toml", "__pycache__", ".ruff_cache"))
             logger.info(f"Deployed provider module: {provider_module}")
         else:
             logger.warning(f"Provider module {provider_module} not found in template")
@@ -88,7 +92,7 @@ class ProjectGenerator:
             return
 
         for item in self.xroot_dir.iterdir():
-            if item.name == "__init__.py" or item.name == "__pycache__" or item.name == "pyproject.toml":
+            if item.name in {"__init__.py", "__pycache__", "pyproject.toml", ".ruff_cache"}:
                 # We skip pyproject.toml because we generate it
                 continue
 
@@ -100,32 +104,106 @@ class ProjectGenerator:
             elif item.is_dir():
                 if destination.exists():
                     shutil.rmtree(destination)
-                shutil.copytree(item, destination)
+                shutil.copytree(item, destination, ignore=shutil.ignore_patterns(".ruff_cache", "__pycache__"))
                 logger.debug(f"Copied dir {item.name} -> {destination}")
 
-    def deploy_pipelines(self):
-        """Copies pipelines based on repository configuration."""
+    def deploy_pipelines(self):  # noqa: PLR0912
+        """Copies pipelines based on repository configuration and merges with provider logic."""
         repo_type = self.settings.repository.type
-        logger.info(f"Deploying pipelines for repository type: {repo_type}")
+        provider = self.settings.cloud.provider
+
+        logger.info(f"Deploying pipelines for repo: {repo_type}, provider: {provider}")
 
         source_repo_dir = self.xrepos_dir / repo_type
         if not source_repo_dir.exists():
             logger.warning(f"Repository source not found for type {repo_type} at {source_repo_dir}")
             return
 
-        # Simple recursive copy of everything in the repo dir to target dir
-        shutil.copytree(
-            source_repo_dir,
-            self.target_dir,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns("__init__.py", "__pycache__"),
-        )
-        logger.info(f"Copied pipeline files from {source_repo_dir}")
+        # Determine config mapping
+        # Tuple: (source_filename_in_repo_dir, target_relative_path)
+        config_map = {
+            "github": ("ci.yml", ".github/workflows/ci.yml"),
+            "gitlab": (".gitlab-ci.yml", ".gitlab-ci.yml"),
+            "bitbucket": ("bitbucket-pipelines.yml", "bitbucket-pipelines.yml"),
+        }
+
+        if repo_type not in config_map:
+            logger.warning(f"Unknown repository type {repo_type}. Copying blindly.")
+            shutil.copytree(
+                source_repo_dir,
+                self.target_dir,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__init__.py", "__pycache__", "xproviders", ".ruff_cache"),
+            )
+            return
+
+        base_filename, target_rel_path = config_map[repo_type]
+        base_src_path = source_repo_dir / base_filename
+        target_full_path = self.target_dir / target_rel_path
+
+        # 1. Copy everything EXCEPT the base CI file and xproviders dir
+        for item in source_repo_dir.iterdir():
+            if item.name == "xproviders":
+                continue
+            if item.name == base_filename:
+                continue
+
+            dest = self.target_dir / item.name
+            if item.is_dir():
+                if dest.exists():
+                    shutil.rmtree(dest)
+                shutil.copytree(
+                    item, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".ruff_cache", "__pycache__")
+                )
+            else:
+                shutil.copy2(item, dest)
+
+        # 2. Merge and Write CI File
+        if not base_src_path.exists():
+            logger.error(f"Base CI file {base_filename} not found in {source_repo_dir}")
+            return
+
+        with open(base_src_path) as f:
+            base_content = f.read()
+
+        # Find provider snippet
+        providers_dir = source_repo_dir / "xproviders"
+        snippet_content = ""
+
+        # Try standard name first, then 'x' prefix
+        # e.g. gcp.yaml or xgcp.yaml
+        candidates = [f"{provider}.yaml", f"x{provider}.yaml"]
+        found_snippet = False
+
+        if providers_dir.exists():
+            for cand in candidates:
+                cand_path = providers_dir / cand
+                if cand_path.exists():
+                    logger.info(f"Found provider CI snippet: {cand}")
+                    with open(cand_path) as f:
+                        snippet_content = f.read()
+                    found_snippet = True
+                    break
+
+            if not found_snippet:
+                logger.warning(f"No CI snippet found for provider {provider} in {candidates}")
+
+        # Merge
+        full_content = base_content + "\n" + snippet_content
+
+        # Ensure target dir exists
+        target_full_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(target_full_path, "w") as f:
+            f.write(full_content)
+
+        logger.info(f"Generated {target_rel_path} with {provider} configuration.")
 
     def generate_pyproject(self):
         """Merges pyproject.toml files from base, provider, and modules."""
         logger.info("Generating pyproject.toml...")
         import tomllib
+
         from .._build.toml_merger import deep_merge, to_toml_string
 
         # 1. Base pyproject (src/xilos/pyproject.toml)
@@ -140,8 +218,13 @@ class ProjectGenerator:
         # Update Project Meta from Settings
         if "tool" in config and "poetry" in config["tool"]:
             config["tool"]["poetry"]["name"] = self.settings.project.name
-            config["tool"]["poetry"]["description"] = f"Values tailored for {self.settings.cloud.provider}"
-            # Keep other defaults or update as needed
+            config["tool"]["poetry"]["version"] = self.settings.project.version
+            config["tool"]["poetry"]["description"] = self.settings.project.description
+            config["tool"]["poetry"]["authors"] = self.settings.project.authors
+            config["tool"]["poetry"]["readme"] = self.settings.project.readme
+
+            # Update source package
+            config["tool"]["poetry"]["packages"] = [{"include": self.settings.project.package_name, "from": "src"}]
 
         # 2. Provider pyproject (src/xilos/_template/x{provider}/pyproject.toml)
         # Naming convention seems to be x{provider}, e.g., xgcp, xaws

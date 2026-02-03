@@ -1,4 +1,5 @@
 import sys
+import tomllib
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -6,8 +7,6 @@ from typing import Literal
 from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings
-
-import tomllib
 
 # Calculate project root dynamically
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -58,5 +57,5 @@ logger.remove()
 logger.add(
     sys.stdout,
     level=core_settings.log_level,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
 )

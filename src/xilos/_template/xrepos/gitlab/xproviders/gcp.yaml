@@ -1,0 +1,26 @@
+build-push-image:
+  stage: build
+  image: google/cloud-sdk:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs: ["test"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "development" || $CI_COMMIT_BRANCH == "staging" || $CI_COMMIT_BRANCH == "production"
+      changes:
+        - src/**/*
+        - bookworm.Dockerfile
+        - pyproject.toml
+        - poetry.lock
+  script:
+    # Authenticate via service account file
+    # TODO: [ML Engineer] Add GCP_SA_KEY (json content) to GitLab CI/CD Variables (File type or standard variable)
+    - echo $GCP_SA_KEY > /tmp/gcp-key.json
+    - gcloud auth activate-service-account --key-file /tmp/gcp-key.json
+    - gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
+
+    - export DOCKER_TAG="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/repo/${IMAGE_NAME}:${CI_COMMIT_SHA}"
+    - docker build -f bookworm.Dockerfile -t $DOCKER_TAG .
+    - docker push $DOCKER_TAG

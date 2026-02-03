@@ -1,0 +1,33 @@
+image: python:3.11
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  POETRY_CACHE_DIR: "$CI_PROJECT_DIR/.poetry-cache"
+
+cache:
+  paths:
+    - .pip-cache/
+    - .poetry-cache/
+    - .venv/
+
+stages:
+  - test
+  - build
+
+.poetry-setup: &poetry-setup
+  before_script:
+    - pip install poetry
+    - poetry config virtualenvs.in-project true
+    - poetry install --with train,serve --no-interaction
+
+test:
+  stage: test
+  <<: *poetry-setup
+  script:
+    - poetry run ruff check .
+    - poetry run ruff format --check .
+    - poetry run pytest tests/ -v --cov=src/xilos
+    # Strip notebooks prevention
+    - poetry install nbstripout . && nbstripout */**/*.ipynb
+
+# The build-push-image job will be appended here based on the chosen cloud vendor
